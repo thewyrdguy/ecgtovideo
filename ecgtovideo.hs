@@ -20,7 +20,7 @@ defaultOpts = Options  { optVerbose = False
                        , optSPS = 150
                        , optFPS = 25
                        , optBase = 1.65
-                       , optMaxV = 0.6
+                       , optMaxV = 1.0
                        , optWsize = 3
                        , optBrushsize = 2
                        , optFontFile =
@@ -75,7 +75,8 @@ frames wsize shift input =
   go $ zip [0..] (lead ++ (map (parse . words) (lines input)))
   where
   lead = [Sample { sTime = 0.0
-                 , sVal = if t > 100 && t < 200 then 2.15 else 1.65
+                 , sVal = if t > (wsize - 60) && t < (wsize - 30)  -- TODO
+                            then 2.15 else 1.65
                  , sQrs = False
                  , sAnom = False} | t <- [0..wsize]]
   parse = (\[a, b, c, d] -> Sample { sTime = read a :: Float
@@ -95,17 +96,26 @@ drawFrame opts canvas brush frame =
       ypos y = (height `div` 2) - round ((y - optBase opts) * yscale)
       pairs [_] = []
       pairs (a:b:xs) = (a, b):pairs (b:xs)
-      qrses = map fst . filter snd $ zip [0..] (map (sQrs . snd) frame)
+      (qrses, qrstms) = unzip $ map (\(n,(_, s)) -> (n, sTime s))
+                              . filter (sQrs . snd . snd) $ zip [0..] frame
       hasqrs n = any (> width - n) qrses
+      avbpm = show $ round (60 / go 1.0 qrstms)
+        where
+        go av [] = av
+        go av [_] = av
+        go av (a:b:xs) = go ((b - a) * 0.2 + (av * 0.8)) xs
     setBrush img brush
     mapM_ (\(p1, p2) -> drawLine p1 p2 (unPCREOption brushed) img)
           $ pairs $ zip [0..] (map (ypos . sVal . snd) frame)
     mapM_ (\x -> setPixel (x, 3) (rgb 255 255 255) img) qrses
+    drawString (optFontFile opts) 20.0 0.0 (width - 100, 30)
+               avbpm (rgb 127 127 127) img
     when (hasqrs (optSPS opts `div` 5))
          $ fmap (const ())
          $ drawString (optFontFile opts) 24.0 0.0 (width - 30, 30)
                       "&#x2665;" (rgb 255 0 0) img
     savePngByteString img >>= B.putStr
+    -- print (qrses, qrstms, hasqrs (optSPS opts `div` 5), avbpm)
 
 -- --------------------------------------------------------------------
 
