@@ -93,36 +93,41 @@ drawFrame opts canvas brush frame =
   withImage (copyImage canvas) $ \img -> do
     (width, height) <- imageSize img
     let
+      -- zframe = zip [0..] frame
+      zframe = zip [0..] $ drop n frame ++ take n frame
+        where
+        n = width - (fst (head frame) `mod` width)
       yscale = fromIntegral (height `div` 2) / optMaxV opts
       ypos y = (height `div` 2) - round ((y - optBase opts) * yscale)
       pairs [_] = []
       pairs (a:b:xs) = (a, b):pairs (b:xs)
-      (qrses, qrstms) = unzip $ map (\(n,(_, s)) -> (n, sTime s))
-                              . filter (sQrs . snd . snd) $ zip [0..] frame
-      hasqrs n = any (> width - n) qrses
+      hasqrs n = any (sQrs . snd) $ drop (width - n) frame
+      qrstms = map (sTime . snd) . filter (sQrs . snd) $ frame
       avbpm = show $ round (60 / go 1.0 qrstms)
         where
         go av [] = av
         go av [_] = av
         go av (a:b:xs) = go ((b - a) * 0.2 + (av * 0.8)) xs
+      qrses = map fst . filter (sQrs . snd . snd) $ zframe
       lbl sec = printf "%d:%02d:%02d" (hh :: Int) (mm :: Int) (ss :: Int)
         where
         (hm, ss) = (round sec) `divMod` 60
         (hh, mm) = hm `divMod` 60
-      lbls = [(n, lbl (sTime s)) | (n, (m, s)) <- zip [0..] frame, m `mod` (optSPS opts) == 0]
+      lbls = [(n, lbl (sTime s)) | (n, (m, s)) <- zframe,
+                                   m `mod` (optSPS opts) == 0]
     setBrush img brush
-    mapM_ (\(n, lb) -> drawString (optFontFile opts) 12.0 0.0 (n, height - 10) lb (rgb 255 255 255) img) lbls
+    mapM_ (\(n, lb) -> drawString (optFontFile opts) 12.0 0.0 (n, height - 10)
+                                  lb (rgb 255 255 255) img) lbls
     drawString (optFontFile opts) 20.0 0.0 (width - 100, 30)
-               avbpm (rgb 127 127 127) img
+               avbpm (rgb 255 255 255) img
     when (hasqrs (optSPS opts `div` 5))
          $ fmap (const ())
          $ drawString (optFontFile opts) 24.0 0.0 (width - 30, 30)
                       "&#x2665;" (rgb 255 0 0) img
     mapM_ (\(p1, p2) -> drawLine p1 p2 (unPCREOption brushed) img)
-          $ pairs $ zip [0..] (map (ypos . sVal . snd) frame)
+          $ pairs $ map (\(n, (_, s)) -> (n, ypos (sVal s))) zframe
     mapM_ (\x -> setPixel (x, 3) (rgb 255 255 255) img) qrses
     savePngByteString img >>= B.putStr
-    -- print (qrses, qrstms, hasqrs (optSPS opts `div` 5), avbpm)
 
 -- --------------------------------------------------------------------
 
