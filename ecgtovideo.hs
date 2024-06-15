@@ -125,10 +125,13 @@ main = do
   let
     wsize = optWsize opts * optSPS opts
     (shift, rem) = optSPS opts `divMod` optFPS opts
-    hsize = 2 * round (optMaxV opts * 20.0 * fromIntegral (optSPS opts) / 25.0)
-  print shift
+    gridstep = optSPS opts `div` 25
+    hsize = 2 * round (optMaxV opts * 20.0 * fromIntegral gridstep)
+    grcol x = if x `mod` 5 == 0 then rgb 127 127 127 else rgb 63 63 63
   when (rem /= 0) $ return $ error "sps must be multiple of fps"
   canvas <- newImage (wsize, hsize)
+  mapM_ (\x -> drawLine (x, 0) (x, hsize) (grcol x) canvas) [0,gridstep..wsize]
+  mapM_ (\y -> drawLine (0, y) (wsize, y) (grcol y) canvas) [0,gridstep..wsize]
   brush <- newImage (optBrushsize opts, optBrushsize opts)
   fillImage (rgb 0 255 0) brush
   getContents >>= mapM_ (drawFrame opts canvas brush) . frames wsize shift
