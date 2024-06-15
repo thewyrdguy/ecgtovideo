@@ -3,6 +3,7 @@ module Main where
 import Control.Monad
 import System.Environment (getArgs, getProgName)
 import System.Console.GetOpt
+import Text.Printf
 
 import qualified Data.ByteString as B
 import Graphics.GD
@@ -104,16 +105,22 @@ drawFrame opts canvas brush frame =
         go av [] = av
         go av [_] = av
         go av (a:b:xs) = go ((b - a) * 0.2 + (av * 0.8)) xs
+      lbl sec = printf "%d:%02d:%02d" (hh :: Int) (mm :: Int) (ss :: Int)
+        where
+        (hm, ss) = (round sec) `divMod` 60
+        (hh, mm) = hm `divMod` 60
+      lbls = [(n, lbl (sTime s)) | (n, (m, s)) <- zip [0..] frame, m `mod` (optSPS opts) == 0]
     setBrush img brush
-    mapM_ (\(p1, p2) -> drawLine p1 p2 (unPCREOption brushed) img)
-          $ pairs $ zip [0..] (map (ypos . sVal . snd) frame)
-    mapM_ (\x -> setPixel (x, 3) (rgb 255 255 255) img) qrses
+    mapM_ (\(n, lb) -> drawString (optFontFile opts) 12.0 0.0 (n, height - 10) lb (rgb 255 255 255) img) lbls
     drawString (optFontFile opts) 20.0 0.0 (width - 100, 30)
                avbpm (rgb 127 127 127) img
     when (hasqrs (optSPS opts `div` 5))
          $ fmap (const ())
          $ drawString (optFontFile opts) 24.0 0.0 (width - 30, 30)
                       "&#x2665;" (rgb 255 0 0) img
+    mapM_ (\(p1, p2) -> drawLine p1 p2 (unPCREOption brushed) img)
+          $ pairs $ zip [0..] (map (ypos . sVal . snd) frame)
+    mapM_ (\x -> setPixel (x, 3) (rgb 255 255 255) img) qrses
     savePngByteString img >>= B.putStr
     -- print (qrses, qrstms, hasqrs (optSPS opts `div` 5), avbpm)
 
