@@ -16,6 +16,7 @@ data Options = Options { optVerbose :: Bool
                        , optWsize :: Int
                        , optBrushsize :: Int
                        , optFontFile :: String
+                       , optTapeMode :: Bool
                        } deriving Show
 defaultOpts = Options  { optVerbose = False
                        , optSPS = 150
@@ -26,6 +27,7 @@ defaultOpts = Options  { optVerbose = False
                        , optBrushsize = 2
                        , optFontFile =
                          "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+                       , optTapeMode = False
                        }
 
 options :: [OptDescr (Options -> Options)]
@@ -53,6 +55,9 @@ options =
       "Thickness of the line in pixels"
   , Option ['f'] ["font"]
       (ReqArg (\d opts -> opts { optFontFile = d }) "Path")
+      "Path to the TTF file"
+  , Option ['t'] ["tape"]
+      (NoArg (\opts -> opts { optTapeMode = True }))
       "Path to the TTF file"
   ]
 
@@ -93,8 +98,9 @@ drawFrame opts canvas brush frame =
   withImage (copyImage canvas) $ \img -> do
     (width, height) <- imageSize img
     let
-      -- zframe = zip [0..] frame
-      zframe = zip [0..] $ drop n frame ++ take n frame
+      zframe = if optTapeMode opts
+                 then zip [0..] frame
+                 else zip [0..] $ drop n frame ++ take n frame
         where
         n = width - (fst (head frame) `mod` width)
       yscale = fromIntegral (height `div` 2) / optMaxV opts
