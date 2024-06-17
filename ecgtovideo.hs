@@ -98,9 +98,9 @@ drawFrame opts canvas brush frame =
   withImage (copyImage canvas) $ \img -> do
     (width, height) <- imageSize img
     let
-      zframe = if optTapeMode opts
-                 then zip [0..] frame
-                 else zip [0..] $ drop n frame ++ take n frame
+      (zframe, cursor) = if optTapeMode opts
+                 then (zip [0..] frame, width - 1)
+                 else (zip [0..] $ drop n frame ++ take n frame, width - n)
         where
         n = width - (fst (head frame) `mod` width)
       yscale = fromIntegral (height `div` 2) / optMaxV opts
@@ -115,13 +115,15 @@ drawFrame opts canvas brush frame =
         go av [_] = av
         go av (a:b:xs) = go ((b - a) * 0.2 + (av * 0.8)) xs
       qrses = map fst . filter (sQrs . snd . snd) $ zframe
-      lbl sec = printf "%d:%02d:%02d" (hh :: Int) (mm :: Int) (ss :: Int)
+      lbl sec = printf "%02d:%02d" (mm :: Int) (ss :: Int)
         where
         (hm, ss) = (round sec) `divMod` 60
-        (hh, mm) = hm `divMod` 60
+        (dh, mm) = hm `divMod` 60
+        (dd, hh) = hm `divMod` 24  -- We don't display hours now, but we may
       lbls = [(n, lbl (sTime s)) | (n, (m, s)) <- zframe,
                                    m `mod` (optSPS opts) == 0]
     setBrush img brush
+    drawLine (cursor, 0) (cursor, height) (rgb 127 127 127) img
     mapM_ (\(n, lb) -> drawString (optFontFile opts) 12.0 0.0 (n, height - 10)
                                   lb (rgb 255 255 255) img) lbls
     drawString (optFontFile opts) 20.0 0.0 (width - 100, 30)
