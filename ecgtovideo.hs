@@ -109,11 +109,12 @@ drawFrame opts canvas brush frame =
       pairs (a:b:xs) = (a, b):pairs (b:xs)
       hasqrs n = any (sQrs . snd) $ drop (width - n) frame
       qrstms = map (sTime . snd) . filter (sQrs . snd) $ frame
-      avbpm = show $ round (60 / go 1.0 qrstms)
+      avbpm [] = "&#x26a0;"  -- "warning sign"; can use 2661 "white heart"
+      avbpm [_] = show $ round (60.0 / fromIntegral (width `div` optSPS opts))
+      avbpm (x:y:xs) = show $ round (60.0 / go (y - x) (y:xs))
         where
-        go av [] = av
-        go av [_] = av
-        go av (a:b:xs) = go ((b - a) * 0.2 + (av * 0.8)) xs
+        go av [x] = av
+        go av (a:b:xs) = go (((b - a) * 0.5) + (av * 0.5)) (b:xs)
       qrses = map fst . filter (sQrs . snd . snd) $ zframe
       lbl sec = printf "%02d:%02d" (mm :: Int) (ss :: Int)
         where
@@ -127,7 +128,7 @@ drawFrame opts canvas brush frame =
     mapM_ (\(n, lb) -> drawString (optFontFile opts) 12.0 0.0 (n, height - 10)
                                   lb (rgb 255 255 255) img) lbls
     drawString (optFontFile opts) 20.0 0.0 (width - 100, 30)
-               avbpm (rgb 255 255 255) img
+               (avbpm qrstms) (rgb 255 255 255) img
     when (hasqrs (optSPS opts `div` 5))
          $ fmap (const ())
          $ drawString (optFontFile opts) 24.0 0.0 (width - 30, 30)
