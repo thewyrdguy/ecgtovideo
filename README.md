@@ -1,4 +1,4 @@
-= Convert raw ECG signal into a sequence of video frames
+# Convert raw ECG signal into a sequence of video frames
 
 This program takes a text file containing ECG samples, one sample per line,
 from stdin, and produces a stream of PNG images to stdout. The latter can
@@ -43,4 +43,4 @@ the hope is to use "IEEE 11073-10406 Basic Electrocardiograph (ECG)
 device specialization class attributes" standard to collect acquire
 realtime data over Bluetooth low energy from capable devices.
 
-ref: https://www.bluetooth.com/wp-content/uploads/2019/03/PHD\_Transcoding\_WP\_v16.pdf
+ref: https://www.bluetooth.com/wp-content/uploads/2019/03/PHD_Transcoding_WP_v16.pdf
