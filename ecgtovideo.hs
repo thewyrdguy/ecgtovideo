@@ -21,8 +21,8 @@ data Options = Options { optVerbose :: Bool
 defaultOpts = Options  { optVerbose = False
                        , optSPS = 150
                        , optFPS = 25
-                       , optBase = 1.65
-                       , optMaxV = 1.0
+                       , optBase = 0.0
+                       , optMaxV = 2.0
                        , optWsize = 3
                        , optBrushsize = 2
                        , optFontFile =
@@ -82,7 +82,7 @@ frames wsize shift input =
   where
   lead = [Sample { sTime = 0.0
                  , sVal = if t > (wsize - 60) && t < (wsize - 30)  -- TODO
-                            then 2.15 else 1.65
+                            then 1.0 else 0.0
                  , sQrs = False
                  , sAnom = False} | t <- [0..wsize]]
   parse = (\[a, b, c, d] -> Sample { sTime = read a :: Float
@@ -144,10 +144,11 @@ main = do
   progname <- getProgName
   opts <- fmap (parseargs progname) getArgs
   let
-    wsize = optWsize opts * optSPS opts
+    wsize = optWsize opts * optSPS opts  -- one pixel per sample
     (shift, rem) = optSPS opts `divMod` optFPS opts
-    gridstep = optSPS opts `div` 25
-    hsize = 2 * round (optMaxV opts * 20.0 * fromIntegral gridstep)
+    gridstep = optSPS opts `div` 25  -- 25 small sqares per second
+    -- gridstep is 1/25 sec horizontally and 0.1 mV vertically
+    hsize = 2 * round (optMaxV opts * 10.0 * fromIntegral gridstep)
     grcol x = if x `mod` 5 == 0 then rgb 127 127 127 else rgb 63 63 63
   when (rem /= 0) $ return $ error "sps must be multiple of fps"
   canvas <- newImage (wsize, hsize)
