@@ -11,7 +11,6 @@ import Graphics.GD
 data Options = Options { optVerbose :: Bool
                        , optSPS :: Int
                        , optFPS :: Int
-                       , optBase :: Float
                        , optMaxV :: Float
                        , optWsize :: Int
                        , optBrushsize :: Int
@@ -21,7 +20,6 @@ data Options = Options { optVerbose :: Bool
 defaultOpts = Options  { optVerbose = False
                        , optSPS = 150
                        , optFPS = 25
-                       , optBase = 0.0
                        , optMaxV = 2.0
                        , optWsize = 3
                        , optBrushsize = 2
@@ -41,9 +39,6 @@ options =
   , Option ['r'] ["framerate"]
       (ReqArg (\d opts -> opts { optFPS = (read d) }) "FPS")
       "Frame rate on output"
-  , Option ['b'] ["baseline"]
-      (ReqArg (\d opts -> opts { optBase = (read d) }) "mV")
-      "base line in mV"
   , Option ['m'] ["maxamp"]
       (ReqArg (\d opts -> opts { optMaxV = (read d) }) "mV")
       "max amplitude in mV"
@@ -104,7 +99,7 @@ drawFrame opts canvas brush frame =
         where
         n = width - (fst (head frame) `mod` width)
       yscale = fromIntegral (height `div` 2) / optMaxV opts
-      ypos y = (height `div` 2) - round ((y - optBase opts) * yscale)
+      ypos y = (height `div` 2) - round (y * yscale)
       pairs [_] = []
       pairs (a:b:xs) = (a, b):pairs (b:xs)
       hasqrs n = any (sQrs . snd) $ drop (width - n) frame
